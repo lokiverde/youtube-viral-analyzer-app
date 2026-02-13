@@ -95,7 +95,15 @@ export default function HomePage() {
         return;
       }
 
-      setResults(data.data);
+      // Normalize tags/hashtags: AI sometimes returns a single comma-separated string
+      const normalized = { ...data.data };
+      if (typeof normalized.tags === "string") {
+        normalized.tags = normalized.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
+      }
+      if (typeof normalized.hashtags === "string") {
+        normalized.hashtags = normalized.hashtags.split(",").map((t: string) => t.trim()).filter(Boolean);
+      }
+      setResults(normalized);
       setActiveTab("titles");
 
       // Scroll to results
