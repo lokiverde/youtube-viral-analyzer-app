@@ -3,6 +3,10 @@
 import { useState, useRef } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import CopyButton from "@/components/CopyButton";
+import StyleReferences from "@/components/StyleReferences";
+import HeadshotUpload from "@/components/HeadshotUpload";
+import ThumbnailGenerator from "@/components/ThumbnailGenerator";
+import { CHANNELS } from "@/lib/channels";
 
 // Types
 interface AnalysisData {
@@ -52,6 +56,11 @@ export default function HomePage() {
   const [videoDuration, setVideoDuration] = useState("");
   const [showOptions, setShowOptions] = useState(false);
 
+  // Thumbnail setup state
+  const [showThumbnailSetup, setShowThumbnailSetup] = useState(false);
+  const [styleGuide, setStyleGuide] = useState(CHANNELS.techtony.thumbnailStyle);
+  const [headshotUrl, setHeadshotUrl] = useState<string | null>(null);
+
   // UI state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState<AnalysisData | null>(null);
@@ -67,6 +76,15 @@ export default function HomePage() {
   const showToast = (message: string) => {
     setToast(message);
     setTimeout(() => setToast(null), 2500);
+  };
+
+  // Update style guide default when channel changes
+  const handleChannelChange = (newChannel: "techtony" | "huntermason") => {
+    setChannel(newChannel);
+    // Only reset to default if user hasn't customized via style analysis
+    if (styleGuide === CHANNELS[channel].thumbnailStyle) {
+      setStyleGuide(CHANNELS[newChannel].thumbnailStyle);
+    }
   };
 
   const handleAnalyze = async () => {
@@ -132,6 +150,9 @@ export default function HomePage() {
     ?.map((ch) => `${ch.timestamp} ${ch.title}`)
     .join("\n") || "";
 
+  // Get the first selected title for passing to thumbnail generator as video_title
+  const selectedTitle = results?.titles?.curiosity_gap?.[0] || "";
+
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-primary)" }}>
       {/* Header */}
@@ -152,7 +173,7 @@ export default function HomePage() {
             className="text-[10px] px-1.5 py-0.5 rounded font-medium"
             style={{ background: "var(--accent-muted)", color: "var(--accent)" }}
           >
-            v1.0
+            v2.0
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -184,6 +205,61 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="max-w-[900px] mx-auto px-4 py-8">
+        {/* Thumbnail Setup — Collapsible */}
+        <div
+          className="rounded-2xl mb-4 animate-fade-in"
+          style={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <button
+            onClick={() => setShowThumbnailSetup(!showThumbnailSetup)}
+            className="w-full px-6 py-4 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm">&#127912;</span>
+              <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                Thumbnail Setup
+              </span>
+              <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                (style references &amp; headshot)
+              </span>
+            </div>
+            <svg
+              className={`h-4 w-4 transition-transform ${showThumbnailSetup ? "rotate-180" : ""}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              style={{ color: "var(--text-muted)" }}
+            >
+              <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+
+          {showThumbnailSetup && (
+            <div className="px-6 pb-6 space-y-5 border-t animate-fade-in" style={{ borderColor: "var(--border)" }}>
+              <div className="pt-4">
+                <StyleReferences
+                  channel={channel}
+                  styleGuide={styleGuide}
+                  onStyleGuideChange={setStyleGuide}
+                />
+              </div>
+              <div
+                className="pt-4 border-t"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <HeadshotUpload
+                  headshotUrl={headshotUrl}
+                  onHeadshotChange={setHeadshotUrl}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Form Section */}
         <div
           className="rounded-2xl p-6 animate-fade-in"
@@ -199,7 +275,7 @@ export default function HomePage() {
             </label>
             <div className="flex gap-2">
               <button
-                onClick={() => setChannel("techtony")}
+                onClick={() => handleChannelChange("techtony")}
                 className="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all"
                 style={{
                   background: channel === "techtony" ? "rgba(0, 102, 255, 0.15)" : "var(--bg-tertiary)",
@@ -210,7 +286,7 @@ export default function HomePage() {
                 TechTony
               </button>
               <button
-                onClick={() => setChannel("huntermason")}
+                onClick={() => handleChannelChange("huntermason")}
                 className="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all"
                 style={{
                   background: channel === "huntermason" ? "rgba(27, 54, 93, 0.2)" : "var(--bg-tertiary)",
@@ -476,43 +552,24 @@ export default function HomePage() {
 
               {/* THUMBNAILS TAB */}
               {activeTab === "thumbnails" && (
-                <div className="grid gap-4 md:grid-cols-3">
-                  {results.thumbnail_concepts.map((thumb, i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl p-4 relative"
-                      style={{
-                        background: "var(--bg-input)",
-                        border: `1px solid ${thumb.recommended ? "var(--green)" : "var(--border)"}`,
-                      }}
-                    >
-                      {thumb.recommended && (
-                        <span
-                          className="absolute -top-2 right-3 text-[10px] font-semibold px-2 py-0.5 rounded"
-                          style={{ background: "var(--green)", color: "white" }}
-                        >
-                          Recommended
-                        </span>
-                      )}
-                      <div className="text-sm mb-3" style={{ color: "var(--text-primary)" }}>
-                        {thumb.concept}
-                      </div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span
-                          className="px-2 py-0.5 rounded text-xs font-bold tracking-wide"
-                          style={{
-                            background: channel === "techtony" ? "rgba(0, 102, 255, 0.15)" : "rgba(27, 54, 93, 0.2)",
-                            color: channel === "techtony" ? "#0066FF" : "#C5A572",
-                          }}
-                        >
-                          {thumb.text_overlay}
-                        </span>
-                      </div>
-                      <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                        Emotion: {thumb.emotion}
-                      </div>
-                    </div>
-                  ))}
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {results.thumbnail_concepts.map((thumb, i) => (
+                      <ThumbnailGenerator
+                        key={i}
+                        concept={thumb}
+                        channel={channel}
+                        styleGuide={styleGuide}
+                        headshotUrl={headshotUrl}
+                        videoTitle={selectedTitle}
+                      />
+                    ))}
+                  </div>
+                  {!styleGuide && (
+                    <p className="text-xs text-center mt-2" style={{ color: "var(--text-muted)" }}>
+                      Tip: Upload sample thumbnails in the Thumbnail Setup section above for better style matching
+                    </p>
+                  )}
                 </div>
               )}
 

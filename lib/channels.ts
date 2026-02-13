@@ -7,6 +7,8 @@ export interface ChannelConfig {
   topics: string;
   thumbnailColors: string;
   titlePatterns: string[];
+  sampleThumbnails: string[];
+  thumbnailStyle: string;
 }
 
 export const CHANNELS: Record<string, ChannelConfig> = {
@@ -24,6 +26,9 @@ export const CHANNELS: Record<string, ChannelConfig> = {
       "Stop Using [Old Tool], Use This Instead",
       "X Tools I Use to Run My Entire [Business Type]",
     ],
+    sampleThumbnails: [],
+    thumbnailStyle:
+      "High-energy tech aesthetic. Electric blue (#0066FF) and neon green (#39FF14) accents on dark backgrounds. Bold sans-serif text with glow effects. Modern, clean composition with tech gadgets or screens as props. Excited or surprised facial expressions. High saturation, futuristic feel.",
   },
   huntermason: {
     id: "huntermason",
@@ -39,6 +44,9 @@ export const CHANNELS: Record<string, ChannelConfig> = {
       "The Truth About [Common Misconception]",
       "[Number] Things to Know Before [Action]",
     ],
+    sampleThumbnails: [],
+    thumbnailStyle:
+      "Professional real estate aesthetic. Navy blue (#1B365D) and gold (#C5A572) palette. Clean, authoritative composition with property images or professional headshots. Warm, trustworthy tone. Bold white or gold text with subtle drop shadows on dark navy backgrounds. Premium, high-end feel.",
   },
 };
 
