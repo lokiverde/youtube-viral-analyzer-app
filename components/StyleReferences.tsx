@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { CHANNELS, type ChannelId } from "@/lib/channels";
 
 interface StyleReferencesProps {
-  channel: "techtony" | "huntermason";
+  channel: ChannelId;
   styleGuide: string;
   onStyleGuideChange: (guide: string) => void;
 }
@@ -94,9 +95,8 @@ export default function StyleReferences({
     }
   };
 
-  const accentColor = channel === "techtony" ? "#0066FF" : "#C5A572";
-  const accentBg =
-    channel === "techtony" ? "rgba(0, 102, 255, 0.1)" : "rgba(197, 165, 114, 0.1)";
+  const accentColor = CHANNELS[channel].accentColor;
+  const accentBg = CHANNELS[channel].accentBg;
 
   return (
     <div className="space-y-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CHANNELS, type ChannelId } from "@/lib/channels";
 
 interface ThumbnailConcept {
   concept: string;
@@ -17,7 +18,7 @@ interface GeneratedThumbnail {
 
 interface ThumbnailGeneratorProps {
   concept: ThumbnailConcept;
-  channel: "techtony" | "huntermason";
+  channel: ChannelId;
   styleGuide: string;
   headshotUrl: string | null;
   videoTitle?: string;
@@ -36,9 +37,8 @@ export default function ThumbnailGenerator({
   const [error, setError] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
 
-  const accentColor = channel === "techtony" ? "#0066FF" : "#C5A572";
-  const accentBg =
-    channel === "techtony" ? "rgba(0, 102, 255, 0.15)" : "rgba(27, 54, 93, 0.2)";
+  const accentColor = CHANNELS[channel].accentColor;
+  const accentBg = CHANNELS[channel].accentBg;
 
   const handleGenerate = async () => {
     setIsGenerating(true);

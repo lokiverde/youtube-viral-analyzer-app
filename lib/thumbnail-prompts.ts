@@ -29,9 +29,7 @@ export function buildDallePrompt(
   textOverlay: string,
   includeHeadshot: boolean
 ): string {
-  const channelStyle = channel.id === "techtony"
-    ? "Electric Blue (#0066FF), Black, Neon Green (#39FF14), White. Tech-forward, modern, high-energy."
-    : "Navy Blue (#1B365D), Gold (#C5A572), White, Warm Gray. Professional, trustworthy, premium real estate.";
+  const channelStyle = `${channel.thumbnailColors}. ${channel.thumbnailVibe}`;
 
   let prompt = `Create a YouTube thumbnail image (landscape, 16:9 aspect ratio).
 
@@ -47,7 +45,7 @@ Include bold text reading "${textOverlay}" in a prominent position. Use thick sa
 - LARGE and immediately readable at small sizes
 - High contrast against the background (use outline, shadow, or contrasting background)
 - Positioned following the rule of thirds (avoid bottom-right corner)
-- ${channel.id === "techtony" ? "Electric blue or neon green text with black outline" : "Gold or white text with dark navy outline"}`;
+- ${channel.thumbnailTextTreatment}`;
 
   if (styleGuide) {
     prompt += `

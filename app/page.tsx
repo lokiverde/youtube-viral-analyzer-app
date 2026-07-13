@@ -6,7 +6,7 @@ import CopyButton from "@/components/CopyButton";
 import StyleReferences from "@/components/StyleReferences";
 import HeadshotUpload from "@/components/HeadshotUpload";
 import ThumbnailGenerator from "@/components/ThumbnailGenerator";
-import { CHANNELS } from "@/lib/channels";
+import { CHANNELS, type ChannelId } from "@/lib/channels";
 
 // Types
 interface AnalysisData {
@@ -51,7 +51,7 @@ const TABS: { id: Tab; label: string }[] = [
 export default function HomePage() {
   // Form state
   const [transcript, setTranscript] = useState("");
-  const [channel, setChannel] = useState<"techtony" | "huntermason">("techtony");
+  const [channel, setChannel] = useState<ChannelId>("techtony");
   const [visualContext, setVisualContext] = useState("");
   const [videoDuration, setVideoDuration] = useState("");
   const [showOptions, setShowOptions] = useState(false);
@@ -79,7 +79,7 @@ export default function HomePage() {
   };
 
   // Update style guide default when channel changes
-  const handleChannelChange = (newChannel: "techtony" | "huntermason") => {
+  const handleChannelChange = (newChannel: ChannelId) => {
     setChannel(newChannel);
     // Only reset to default if user hasn't customized via style analysis
     if (styleGuide === CHANNELS[channel].thumbnailStyle) {
@@ -173,7 +173,7 @@ export default function HomePage() {
             className="text-[10px] px-1.5 py-0.5 rounded font-medium"
             style={{ background: "var(--accent-muted)", color: "var(--accent)" }}
           >
-            v2.0
+            v3.0
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -273,29 +273,24 @@ export default function HomePage() {
             <label className="block text-xs font-medium mb-2" style={{ color: "var(--text-label)" }}>
               Channel
             </label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleChannelChange("techtony")}
-                className="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all"
-                style={{
-                  background: channel === "techtony" ? "rgba(0, 102, 255, 0.15)" : "var(--bg-tertiary)",
-                  color: channel === "techtony" ? "#0066FF" : "var(--text-secondary)",
-                  border: `1px solid ${channel === "techtony" ? "rgba(0, 102, 255, 0.4)" : "var(--border)"}`,
-                }}
-              >
-                TechTony
-              </button>
-              <button
-                onClick={() => handleChannelChange("huntermason")}
-                className="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all"
-                style={{
-                  background: channel === "huntermason" ? "rgba(27, 54, 93, 0.2)" : "var(--bg-tertiary)",
-                  color: channel === "huntermason" ? "#C5A572" : "var(--text-secondary)",
-                  border: `1px solid ${channel === "huntermason" ? "rgba(197, 165, 114, 0.4)" : "var(--border)"}`,
-                }}
-              >
-                HunterMason
-              </button>
+            <div className="flex flex-wrap gap-2">
+              {Object.values(CHANNELS).map((c) => {
+                const active = channel === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => handleChannelChange(c.id)}
+                    className="flex-1 min-w-[110px] py-2.5 px-4 rounded-lg text-sm font-medium transition-all"
+                    style={{
+                      background: active ? c.accentBg : "var(--bg-tertiary)",
+                      color: active ? c.accentColor : "var(--text-secondary)",
+                      border: `1px solid ${active ? `${c.accentColor}66` : "var(--border)"}`,
+                    }}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -391,9 +386,7 @@ export default function HomePage() {
             disabled={isAnalyzing || !transcript.trim()}
             className="w-full py-3.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
-              background: channel === "techtony"
-                ? "linear-gradient(135deg, #0066FF, #39FF14)"
-                : "linear-gradient(135deg, #1B365D, #C5A572)",
+              background: CHANNELS[channel].gradient,
               color: "white",
             }}
           >
