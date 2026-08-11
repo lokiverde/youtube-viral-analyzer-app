@@ -62,7 +62,7 @@ Leave a clear space on the left or right third of the image for a person's head 
   prompt += `
 
 RENDERING:
-Highly saturated complementary colors, dramatic rim lighting, one clear focal point, a simple uncluttered background, sharp focus, no blur or noise, professional editorial photography quality rather than generic stock. The mood is ${concept.includes("warning") || concept.includes("mistake") ? "urgent and alarming" : "curious and energetic"}. No YouTube interface, no play button, no video player frame, no watermark, no border.`;
+Highly saturated complementary colors, dramatic rim lighting, one clear focal point, a simple uncluttered background, sharp focus, no blur or noise, professional editorial photography quality rather than generic stock. The mood is ${concept.includes("warning") || concept.includes("mistake") ? "urgent and alarming" : "curious and energetic"}. The photograph fills the entire 16:9 frame edge to edge with no border, no frame, no letterbox bars and no flat margin around it. No YouTube interface, no play button, no video player chrome, no watermark.`;
 
   return prompt;
 }
@@ -92,6 +92,8 @@ PROMPT WRITING RULES (FLUX-specific):
 - Front-load the subject and action in the first sentence — FLUX weights early tokens most heavily.
 - Be specific about colors (use hex codes), positions, sizes, camera angle and lighting.
 - Put the text overlay in double quotes and state it exactly once, e.g. bold text reading "STOP THIS". FLUX renders short quoted strings well but garbles long ones — keep it to 3 words or fewer and never ask for two different text elements.
+- Spell out symbols in the overlay: write AND rather than &, and drop any punctuation FLUX would try to draw. Symbols come out duplicated or malformed.
+- Always describe the shot as filling the entire frame edge to edge — a full-bleed photograph with no border, no frame, no letterbox bars, no white or grey margin, no drop shadow around the image itself. FLUX otherwise insets the scene inside a flat background.
 - State plainly that no other words, letters or watermarks appear in the image.
 - Keep the whole prompt under 250 words. Long prompts dilute FLUX's attention.
 - Avoid requesting realistic photographs of specific real people.
