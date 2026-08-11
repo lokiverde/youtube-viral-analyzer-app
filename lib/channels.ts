@@ -17,6 +17,9 @@ export interface ChannelConfig {
   gradient: string;
   thumbnailVibe: string;
   thumbnailTextTreatment: string;
+  // Colors for the overlay text the app composites after generation.
+  textFill: string;
+  textOutline: string;
 }
 
 export const CHANNELS: Record<ChannelId, ChannelConfig> = {
@@ -42,6 +45,8 @@ export const CHANNELS: Record<ChannelId, ChannelConfig> = {
     gradient: "linear-gradient(135deg, #0066FF, #39FF14)",
     thumbnailVibe: "Tech-forward, modern, high-energy.",
     thumbnailTextTreatment: "Electric blue or neon green text with black outline",
+    textFill: "#39FF14",
+    textOutline: "#04140A",
   },
   huntermason: {
     id: "huntermason",
@@ -65,6 +70,8 @@ export const CHANNELS: Record<ChannelId, ChannelConfig> = {
     gradient: "linear-gradient(135deg, #1B365D, #C5A572)",
     thumbnailVibe: "Professional, trustworthy, premium real estate.",
     thumbnailTextTreatment: "Gold or white text with dark navy outline",
+    textFill: "#C5A572",
+    textOutline: "#0B1A2E",
   },
   cheriscloset: {
     id: "cheriscloset",
@@ -89,6 +96,8 @@ export const CHANNELS: Record<ChannelId, ChannelConfig> = {
     gradient: "linear-gradient(135deg, #6B1E3C, #C25B6E)",
     thumbnailVibe: "Cinematic, emotional, faceless narrated storytelling.",
     thumbnailTextTreatment: "Cream or warm-rose text with deep burgundy outline",
+    textFill: "#F5E6D3",
+    textOutline: "#3A0F20",
   },
 };
 

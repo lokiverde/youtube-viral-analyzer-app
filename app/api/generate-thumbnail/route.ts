@@ -6,6 +6,7 @@ import sharp from "sharp";
 import { getChannel } from "@/lib/channels";
 import { buildFluxPrompt, buildPromptCrafterSystem } from "@/lib/thumbnail-prompts";
 import { generateImageOnTim, TimImageError } from "@/lib/tim-flux";
+import { compositeTextOverlay } from "@/lib/thumbnail-text";
 
 // Images are generated on Tim's GPU via the media_jobs queue: ~11s of FLUX
 // plus up to ~3s of worker poll lag, so allow generous headroom.
@@ -192,7 +193,6 @@ export async function POST(request: NextRequest) {
       concept,
       channel,
       typeof style_guide === "string" ? style_guide : null,
-      overlay,
       includeHeadshot
     );
 
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
         { role: "system", content: buildPromptCrafterSystem() },
         {
           role: "user",
-          content: `Transform this thumbnail concept into an optimized FLUX prompt:\n\nCONCEPT: ${concept}\nTEXT OVERLAY: "${overlay}"\nEMOTION: ${emotion || "curiosity"}\nCHANNEL: ${channel.name}\n${video_title ? `VIDEO TITLE: ${video_title}` : ""}\n\nBASE PROMPT TO ENHANCE:\n${baseFluxPrompt}`,
+          content: `Transform this thumbnail concept into an optimized FLUX prompt for a text-free background:\n\nCONCEPT: ${concept}\nEMOTION: ${emotion || "curiosity"}\nCHANNEL: ${channel.name}\n${video_title ? `VIDEO TITLE: ${video_title}` : ""}\n\nBASE PROMPT TO ENHANCE:\n${baseFluxPrompt}`,
         },
       ],
       max_tokens: 1000,
@@ -240,7 +240,20 @@ export async function POST(request: NextRequest) {
       .png()
       .toBuffer();
 
-    // Step 4: Optional headshot compositing
+    // Step 4: Burn in the headline. FLUX cannot be trusted with more than two
+    // words, so the background is generated text-free and the type added here.
+    try {
+      imageBuffer = await compositeTextOverlay(imageBuffer, overlay, channel, {
+        width: YOUTUBE_WIDTH,
+        height: YOUTUBE_HEIGHT,
+        reserveHeadshotSpace: includeHeadshot,
+      });
+    } catch (err) {
+      console.error("Text overlay failed:", err);
+      // Continue with a bare background rather than failing the whole request.
+    }
+
+    // Step 5: Optional headshot compositing
     if (headshot_url && typeof headshot_url === "string") {
       try {
         imageBuffer = await compositeHeadshot(imageBuffer, headshot_url);
@@ -250,7 +263,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Step 5: Upload to Bunny CDN
+    // Step 6: Upload to Bunny CDN
     // Prefixed because the storage zone is shared with other Hunter Mason media.
     const filename = `yva/thumb-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.png`;
 

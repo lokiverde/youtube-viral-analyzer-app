@@ -29,7 +29,6 @@ export function buildFluxPrompt(
   concept: string,
   channel: ChannelConfig,
   styleGuide: string | null,
-  textOverlay: string,
   includeHeadshot: boolean
 ): string {
   const channelStyle = `${channel.thumbnailColors}. ${channel.thumbnailVibe}`;
@@ -42,8 +41,8 @@ ${concept}
 CHANNEL BRANDING:
 ${channel.name} channel. Color palette: ${channelStyle}
 
-TEXT OVERLAY:
-Large bold text reading exactly "${textOverlay}" rendered in a thick condensed sans-serif face (Impact or Montserrat Black), all caps, with a heavy contrasting outline and drop shadow. The text sits along the top edge or the upper-left third, never across the subject's face and never in the bottom-right corner. It stays crisp and readable at 120x68 pixels. ${channel.thumbnailTextTreatment}. Render no words other than "${textOverlay}" anywhere in the image.`;
+NO TEXT:
+The image contains no text of any kind. No words, no letters, no numbers, no signage, no captions, no logos, no watermarks. The headline is added afterwards, so leave the upper-left third of the frame visually calm and uncluttered: an area of sky, wall, shadow or shallow-focus background that a large block of type can sit on top of without covering the subject.`;
 
   if (styleGuide) {
     prompt += `
@@ -75,7 +74,7 @@ Highly saturated complementary colors, dramatic rim lighting, one clear focal po
 export function buildPromptCrafterSystem(): string {
   return `You are an expert at writing FLUX image generation prompts for YouTube thumbnails.
 
-Your job: Take a thumbnail concept description and transform it into an optimized FLUX prompt that will produce a viral, click-worthy YouTube thumbnail.
+Your job: Take a thumbnail concept description and transform it into an optimized FLUX prompt that will produce a viral, click-worthy YouTube thumbnail BACKGROUND. The headline text is composited on afterwards by the application, so the generated image must contain no text at all.
 
 VIRAL THUMBNAIL PRINCIPLES (always incorporate):
 1. EMOTIONAL IMPACT: Close-up facial expressions increase CTR by 30%. Shock, curiosity, and excitement outperform neutral.
@@ -83,7 +82,7 @@ VIRAL THUMBNAIL PRINCIPLES (always incorporate):
 3. SIMPLICITY: One clear focal point. 1-2 key elements maximum. The thumbnail must read at 120x68 pixels on mobile.
 4. MrBeast FORMULA: Extreme emotion + vivid saturation + simple background + bold text overlay.
 5. CURIOSITY GAP: The visual should raise a question only the video answers.
-6. TEXT RULES: 2-3 words max, thick sans-serif font, high-contrast outline/shadow, avoid bottom-right corner (YouTube shows duration there).
+6. HEADLINE SPACE: the headline is composited on later in the upper-left third, so that region must stay visually quiet and the subject must not sit under it.
 7. COMPOSITION: Rule of thirds. Clear visual hierarchy. Guide the eye to the focal point.
 8. CONTRAST: Foreground must pop from background. Use light-on-dark or dark-on-light.
 
@@ -91,8 +90,8 @@ PROMPT WRITING RULES (FLUX-specific):
 - Write flowing descriptive prose, not a bulleted list of instructions. FLUX reads the whole prompt as one scene description.
 - Front-load the subject and action in the first sentence — FLUX weights early tokens most heavily.
 - Be specific about colors (use hex codes), positions, sizes, camera angle and lighting.
-- Put the text overlay in double quotes and state it exactly once, e.g. bold text reading "STOP THIS". FLUX renders short quoted strings well but garbles long ones — keep it to 3 words or fewer and never ask for two different text elements.
-- Spell out symbols in the overlay: write AND rather than &, and drop any punctuation FLUX would try to draw. Symbols come out duplicated or malformed.
+- NEVER ask for text, words, letters, numbers, signage, captions or logos. The headline is composited on afterwards, and any text FLUX draws will collide with it. State explicitly that the image contains no text.
+- Reserve the upper-left third for the headline: describe that area as calm, uncluttered background (sky, wall, shadow, shallow-focus blur) and put the subject and focal detail to the right of it.
 - Always describe the shot as filling the entire frame edge to edge — a full-bleed photograph with no border, no frame, no letterbox bars, no white or grey margin, no drop shadow around the image itself. FLUX otherwise insets the scene inside a flat background.
 - State plainly that no other words, letters or watermarks appear in the image.
 - Keep the whole prompt under 250 words. Long prompts dilute FLUX's attention.
