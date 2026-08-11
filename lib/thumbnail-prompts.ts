@@ -19,10 +19,13 @@ Output a single paragraph (150-200 words) that a designer could use to replicate
 }
 
 /**
- * Builds a detailed DALL-E 3 prompt from a thumbnail concept, channel branding,
+ * Builds a detailed FLUX prompt from a thumbnail concept, channel branding,
  * style guide, and viral best practices.
+ *
+ * FLUX responds to dense visual description rather than the bulleted
+ * instruction lists DALL-E tolerated, so this reads as one scene brief.
  */
-export function buildDallePrompt(
+export function buildFluxPrompt(
   concept: string,
   channel: ChannelConfig,
   styleGuide: string | null,
@@ -31,7 +34,7 @@ export function buildDallePrompt(
 ): string {
   const channelStyle = `${channel.thumbnailColors}. ${channel.thumbnailVibe}`;
 
-  let prompt = `Create a YouTube thumbnail image (landscape, 16:9 aspect ratio).
+  let prompt = `A YouTube thumbnail, 16:9 landscape, 1280x720.
 
 VISUAL CONCEPT:
 ${concept}
@@ -40,12 +43,7 @@ CHANNEL BRANDING:
 ${channel.name} channel. Color palette: ${channelStyle}
 
 TEXT OVERLAY:
-Include bold text reading "${textOverlay}" in a prominent position. Use thick sans-serif font (like Impact or Montserrat Black). The text must be:
-- Maximum 3 words
-- LARGE and immediately readable at small sizes
-- High contrast against the background (use outline, shadow, or contrasting background)
-- Positioned following the rule of thirds (avoid bottom-right corner)
-- ${channel.thumbnailTextTreatment}`;
+Large bold text reading exactly "${textOverlay}" rendered in a thick condensed sans-serif face (Impact or Montserrat Black), all caps, with a heavy contrasting outline and drop shadow. The text sits along the top edge or the upper-left third, never across the subject's face and never in the bottom-right corner. It stays crisp and readable at 120x68 pixels. ${channel.thumbnailTextTreatment}. Render no words other than "${textOverlay}" anywhere in the image.`;
 
   if (styleGuide) {
     prompt += `
@@ -63,31 +61,21 @@ Leave a clear space on the left or right third of the image for a person's head 
 
   prompt += `
 
-VIRAL THUMBNAIL RULES:
-- High color saturation (150%+ of normal) — make colors POP
-- Maximum 1-2 focal points. Simplicity wins.
-- Strong emotional resonance (the image should trigger ${concept.includes("warning") || concept.includes("mistake") ? "concern/urgency" : "curiosity/excitement"})
-- Complementary color theory for contrast (blue+orange, yellow+violet, red+cyan)
-- Clean, sharp edges — no blur or noise
-- Professional quality, not generic stock photo feel
-- The thumbnail must be compelling even at 120x68 pixels (mobile size)
-- Do NOT include any YouTube UI elements, play buttons, or video player frames
-
-OUTPUT:
-A single 1792x1024 pixel landscape image. Vivid, high-contrast, scroll-stopping.`;
+RENDERING:
+Highly saturated complementary colors, dramatic rim lighting, one clear focal point, a simple uncluttered background, sharp focus, no blur or noise, professional editorial photography quality rather than generic stock. The mood is ${concept.includes("warning") || concept.includes("mistake") ? "urgent and alarming" : "curious and energetic"}. No YouTube interface, no play button, no video player frame, no watermark, no border.`;
 
   return prompt;
 }
 
 /**
- * Builds a GPT-4o prompt to craft an optimized DALL-E prompt from a concept.
- * This two-step approach (GPT-4o → DALL-E) produces better results than
- * sending the concept directly to DALL-E.
+ * Builds a GPT-4o prompt to craft an optimized FLUX prompt from a concept.
+ * This two-step approach (GPT-4o → FLUX) produces better results than
+ * sending the raw concept straight to the image model.
  */
 export function buildPromptCrafterSystem(): string {
-  return `You are an expert at writing DALL-E 3 image generation prompts for YouTube thumbnails.
+  return `You are an expert at writing FLUX image generation prompts for YouTube thumbnails.
 
-Your job: Take a thumbnail concept description and transform it into an optimized DALL-E 3 prompt that will produce a viral, click-worthy YouTube thumbnail.
+Your job: Take a thumbnail concept description and transform it into an optimized FLUX prompt that will produce a viral, click-worthy YouTube thumbnail.
 
 VIRAL THUMBNAIL PRINCIPLES (always incorporate):
 1. EMOTIONAL IMPACT: Close-up facial expressions increase CTR by 30%. Shock, curiosity, and excitement outperform neutral.
@@ -99,13 +87,16 @@ VIRAL THUMBNAIL PRINCIPLES (always incorporate):
 7. COMPOSITION: Rule of thirds. Clear visual hierarchy. Guide the eye to the focal point.
 8. CONTRAST: Foreground must pop from background. Use light-on-dark or dark-on-light.
 
-PROMPT WRITING RULES:
-- Be extremely specific about colors (use hex codes), positions, sizes, lighting
-- Describe the scene in detail but keep it achievable for AI image generation
-- Always specify "16:9 aspect ratio, landscape orientation, 1792x1024 pixels"
-- Include the exact text to render and describe its styling in detail
-- Avoid requesting realistic photographs of specific real people
-- End with "Vivid, high-contrast, professional YouTube thumbnail quality"
+PROMPT WRITING RULES (FLUX-specific):
+- Write flowing descriptive prose, not a bulleted list of instructions. FLUX reads the whole prompt as one scene description.
+- Front-load the subject and action in the first sentence — FLUX weights early tokens most heavily.
+- Be specific about colors (use hex codes), positions, sizes, camera angle and lighting.
+- Put the text overlay in double quotes and state it exactly once, e.g. bold text reading "STOP THIS". FLUX renders short quoted strings well but garbles long ones — keep it to 3 words or fewer and never ask for two different text elements.
+- State plainly that no other words, letters or watermarks appear in the image.
+- Keep the whole prompt under 250 words. Long prompts dilute FLUX's attention.
+- Avoid requesting realistic photographs of specific real people.
+- Do not include negative phrasing like "no ugly hands" — describe what you want instead.
+- End with "sharp focus, high contrast, professional YouTube thumbnail quality".
 
-Return ONLY the DALL-E prompt text. No explanation, no JSON, just the prompt.`;
+Return ONLY the FLUX prompt text. No explanation, no JSON, just the prompt.`;
 }

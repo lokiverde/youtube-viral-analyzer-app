@@ -4,9 +4,13 @@ import { createHmac } from "crypto";
 import OpenAI from "openai";
 import sharp from "sharp";
 import { getChannel } from "@/lib/channels";
-import { buildDallePrompt, buildPromptCrafterSystem } from "@/lib/thumbnail-prompts";
+import { buildFluxPrompt, buildPromptCrafterSystem } from "@/lib/thumbnail-prompts";
+import { generateImageOnTim, TimImageError } from "@/lib/tim-flux";
 
-export const maxDuration = 60;
+// Images are generated on Tim's GPU via the media_jobs queue: ~11s of FLUX
+// plus up to ~3s of worker poll lag, so allow generous headroom.
+export const maxDuration = 120;
+const TIM_TIMEOUT_MS = 100_000;
 
 const SESSION_COOKIE_NAME = "yva_session";
 const YOUTUBE_WIDTH = 1280;
@@ -181,10 +185,10 @@ export async function POST(request: NextRequest) {
     const overlay = typeof text_overlay === "string" ? text_overlay : "";
     const includeHeadshot = !!headshot_url;
 
-    // Step 1: Use GPT-4o to craft an optimized DALL-E prompt
+    // Step 1: Use GPT-4o to craft an optimized FLUX prompt
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const baseDallePrompt = buildDallePrompt(
+    const baseFluxPrompt = buildFluxPrompt(
       concept,
       channel,
       typeof style_guide === "string" ? style_guide : null,
@@ -198,7 +202,7 @@ export async function POST(request: NextRequest) {
         { role: "system", content: buildPromptCrafterSystem() },
         {
           role: "user",
-          content: `Transform this thumbnail concept into an optimized DALL-E 3 prompt:\n\nCONCEPT: ${concept}\nTEXT OVERLAY: "${overlay}"\nEMOTION: ${emotion || "curiosity"}\nCHANNEL: ${channel.name}\n${video_title ? `VIDEO TITLE: ${video_title}` : ""}\n\nBASE PROMPT TO ENHANCE:\n${baseDallePrompt}`,
+          content: `Transform this thumbnail concept into an optimized FLUX prompt:\n\nCONCEPT: ${concept}\nTEXT OVERLAY: "${overlay}"\nEMOTION: ${emotion || "curiosity"}\nCHANNEL: ${channel.name}\n${video_title ? `VIDEO TITLE: ${video_title}` : ""}\n\nBASE PROMPT TO ENHANCE:\n${baseFluxPrompt}`,
         },
       ],
       max_tokens: 1000,
@@ -206,25 +210,18 @@ export async function POST(request: NextRequest) {
     });
 
     const optimizedPrompt =
-      promptCrafterResponse.choices[0]?.message?.content || baseDallePrompt;
+      promptCrafterResponse.choices[0]?.message?.content || baseFluxPrompt;
 
-    // Step 2: Generate image with DALL-E 3
-    const imageResponse = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: optimizedPrompt,
-      n: 1,
-      size: "1792x1024",
-      quality: "hd",
-      style: "vivid",
-    });
-
-    const imageUrl = imageResponse.data?.[0]?.url;
-    if (!imageUrl) {
-      return NextResponse.json(
-        { success: false, error: "Image generation failed" },
-        { status: 500 }
-      );
-    }
+    // Step 2: Generate the image on Tim's local GPU (FLUX, free) via the queue
+    const imageUrl = await generateImageOnTim(
+      {
+        prompt: optimizedPrompt,
+        model: "flux",
+        width: YOUTUBE_WIDTH,
+        height: YOUTUBE_HEIGHT,
+      },
+      { timeoutMs: TIM_TIMEOUT_MS }
+    );
 
     // Step 3: Download and resize with sharp
     const imageDownload = await fetch(imageUrl);
@@ -254,14 +251,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 5: Upload to Bunny CDN
-    const filename = `thumb-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.png`;
+    // Prefixed because the storage zone is shared with other Hunter Mason media.
+    const filename = `yva/thumb-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.png`;
 
     let finalUrl: string;
     try {
       finalUrl = await uploadToBunnyCDN(imageBuffer, filename);
     } catch (err) {
       console.error("Bunny CDN upload failed:", err);
-      // Fallback: return the original DALL-E URL (temporary, expires in ~1hr)
+      // Fallback: the queue already parked a copy on Tim's CDN zone. That URL
+      // is permanent, but it skips the resize and headshot compositing above.
       finalUrl = imageUrl;
     }
 
@@ -273,6 +272,20 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Thumbnail generation error:", error);
+
+    if (error instanceof TimImageError) {
+      const messages: Record<TimImageError["reason"], string> = {
+        not_configured:
+          "Image generation is not configured. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+        enqueue_failed: "Could not reach the image queue. Try again in a moment.",
+        generation_failed: "The image generator rejected this concept. Try rewording it.",
+        timeout: "The image generator is busy or offline. Try again in a moment.",
+      };
+      return NextResponse.json(
+        { success: false, error: messages[error.reason] },
+        { status: error.reason === "not_configured" ? 500 : 503 }
+      );
+    }
 
     if (error instanceof OpenAI.APIError) {
       if (error.status === 400 && error.message?.includes("content_policy")) {
